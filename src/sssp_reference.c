@@ -30,7 +30,7 @@ extern unsigned long * visited;
 //global variables as those accesed by active message handler
 float *glob_dist;
 float glob_maxdelta, glob_mindelta; //range for current bucket
-float *weights;
+extern float *weights;
 volatile int lightphase;
 
 //Relaxation data type 
@@ -142,8 +142,13 @@ void run_sssp(int64_t root,int64_t* pred,float *dist) {
 		t0-=aml_time();
 		aml_long_allsum(&lvlvisited);
 		aml_long_allsum(&nbytes_sent);
-		if(!my_pe()) printf("--lvl[%1.2f..%1.2f] visited %lld (total %llu) in %5.2fs, network aggr %5.2fGb/s\n",glob_mindelta,glob_maxdelta,lvlvisited-lastvisited,lvlvisited,-t0,-(double)nbytes_sent*8.0/(1.e9*t0));
-		lastvisited = lvlvisited;
+                if (!my_pe())
+                  printf("--lvl[%1.2f..%1.2f] visited %lld (total %ld) in "
+                         "%5.2fs, network aggr %5.2fGb/s\n",
+                         glob_mindelta, glob_maxdelta, lvlvisited - lastvisited,
+                         lvlvisited, -t0,
+                         -(double)nbytes_sent * 8.0 / (1.e9 * t0));
+                lastvisited = lvlvisited;
 #endif
 	}
 

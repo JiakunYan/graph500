@@ -36,7 +36,7 @@ unsigned long *visited;
 int64_t visited_size;
 
 //global variables of CSR graph to be used inside of AM-handlers
-int64_t *column;
+extern int64_t *column;
 int64_t *pred_glob;
 unsigned int * rowstarts;
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 project(graph500)
 
 cmake_policy(SET CMP0074 NEW)
@@ -17,8 +17,8 @@ add_compile_definitions(
 # Set optimization level
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 
-# Include directories
-include_directories(${CMAKE_SOURCE_DIR}/aml)
+# AML
+add_subdirectory(aml)
 
 # Define source files
 set(GENERATOR_SOURCES
@@ -32,51 +32,46 @@ set(COMMON_SOURCES
     src/main.c
     src/utils.c
     src/validate.c
-    aml/aml.c
     src/csr_reference.c
 )
 
 # Define targets
-add_executable(graph500_reference_bfs_sssp
+add_executable(graph500_sssp
     src/bfs_reference.c
     src/sssp_reference.c
     ${COMMON_SOURCES}
     ${GENERATOR_SOURCES}
 )
 
-add_executable(graph500_reference_bfs
+target_link_libraries(graph500_sssp
+    PRIVATE
+    aml
+    MPI::MPI_C
+    Threads::Threads
+    m
+)
+
+# Add SSSP definition for the SSSP target
+target_compile_definitions(graph500_sssp PRIVATE SSSP)
+
+install(TARGETS graph500_sssp
+    RUNTIME DESTINATION bin
+)
+
+add_executable(graph500_bfs
     src/bfs_reference.c
     ${COMMON_SOURCES}
     ${GENERATOR_SOURCES}
 )
 
-add_executable(graph500_custom_bfs
-    src/bfs_custom.c
-    ${COMMON_SOURCES}
-    ${GENERATOR_SOURCES}
+target_link_libraries(graph500_bfs
+    PRIVATE
+    aml
+    MPI::MPI_C
+    Threads::Threads
+    m
 )
 
-add_executable(graph500_custom_bfs_sssp
-    src/bfs_custom.c
-    src/sssp_custom.c
-    ${COMMON_SOURCES}
-    ${GENERATOR_SOURCES}
+install(TARGETS graph500_bfs
+    RUNTIME DESTINATION bin
 )
-
-# Add SSSP definition for the SSSP target
-target_compile_definitions(graph500_reference_bfs_sssp PRIVATE SSSP)
-
-# Link libraries for all targets
-foreach(target
-    graph500_reference_bfs_sssp
-    graph500_reference_bfs
-    graph500_custom_bfs
-    graph500_custom_bfs_sssp
-)
-    target_link_libraries(${target}
-        PRIVATE
-        MPI::MPI_C
-        Threads::Threads
-        m
-    )
-endforeach()
