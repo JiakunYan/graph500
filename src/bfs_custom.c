@@ -50,7 +50,7 @@ typedef struct visitmsg {
 } visitmsg;
 
 // AM-handler for check&visit
-void visithndl(int from, void *data, int sz) {
+void visithndl(int from, void *data) {
   visitmsg *m = data;
   if (!TEST_VISITEDLOC(m->vloc)) {
     SET_VISITEDLOC(m->vloc);
@@ -71,7 +71,7 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   rowstarts = g.rowstarts;
 
   visited_size = (g.nlocalverts + ulong_bits - 1) / ulong_bits;
-  aml_register_handler(visithndl, 1);
+  aml_register_handler(visithndl, sizeof(visitmsg), 1);
   q1 = xmalloc(g.nlocalverts * sizeof(int)); // 100% of vertexes
   q2 = xmalloc(g.nlocalverts * sizeof(int));
   for (i = 0; i < g.nlocalverts; i++)
@@ -84,7 +84,7 @@ void run_bfs(int64_t root, int64_t* pred) {
   long sum;
   unsigned int i, j, k, lvl = 1;
   pred_glob = pred;
-  aml_register_handler(visithndl, 1);
+  aml_register_handler(visithndl, sizeof(visitmsg), 1);
 
   CLEAN_VISITED();
 

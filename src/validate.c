@@ -54,7 +54,7 @@ int64_t newvisits;
 int * confirmed=NULL;
 int64_t maxvertex;
 
-void frompredhndl(int from,void* data,int sz) { 
+void frompredhndl(int from,void* data) { 
 	int vfrom = *(int*)data;
 	int64_t predfrom = VERTEX_TO_GLOBAL(from,vfrom);
 	int vloc = *(int*)(data+4);
@@ -68,7 +68,7 @@ void send_frompred (int vfrom,int64_t src) {
 	aml_send(&vloc,1,8,pe);
 }
 
-void vhalfedgehndl(int from,void* data,int sz)
+void vhalfedgehndl(int from,void* data)
 {  vdegrees[*(int*)data]++; }
 
 void send_half (int64_t src) {
@@ -77,7 +77,7 @@ void send_half (int64_t src) {
 	aml_send(&vloc,1,4,pe);
 }
 
-void vfulledgehndl(int frompe,void* data,int sz) {
+void vfulledgehndl(int frompe,void* data) {
 	int vloc = *(int*)data;
 	int64_t gtgt = *((int64_t*)(data+4));
 	int next = vdegrees[vloc]++;
@@ -129,7 +129,7 @@ void sendedgepreddist(unsigned vloc,unsigned int vedge) {
   }
 
 //main validation handler: tracks all edges and at delivery has both vertex preds and distances to be checked
-void edgepreddisthndl(int frompe,void* data,int sz) {
+void edgepreddisthndl(int frompe,void* data) {
 	edgedist *m = (edgedist*) data;
 
 	unsigned int v1loc = m->vloc;
@@ -167,7 +167,7 @@ void makedepthmapforbfs(const size_t nlocalverts,const int64_t root,int64_t * co
 
 	newvisits=1;
 	prevlevel=0.0;
-	aml_register_handler(frompredhndl,1);
+	aml_register_handler(frompredhndl, 8, 1);
 
 	while(newvisits!=0) {
 		newvisits=0;
@@ -200,7 +200,7 @@ vweights=weights;
 #else
 		vdegrees=xcalloc(nlocalverts,sizeof(int));
 
-		aml_register_handler(vhalfedgehndl,1);
+		aml_register_handler(vhalfedgehndl, sizeof(int), 1);
 
 		int numiters=ITERATE_TUPLE_GRAPH_BLOCK_COUNT(tg);
 		// First pass : calculate degrees of each vertex
@@ -228,7 +228,11 @@ vweights=weights;
 #ifdef SSSP
 		vweights = xmalloc(4*vrowstarts[nlocalverts]);
 #endif
-		aml_register_handler(vfulledgehndl,1);
+#ifdef SSSP
+		aml_register_handler(vfulledgehndl, 16, 1);
+#else
+		aml_register_handler(vfulledgehndl, 12, 1);
+#endif
 		//Second pass , actual data transfer: placing edges to its places in vcolumn
 		ITERATE_TUPLE_GRAPH_BEGIN(tg, buf, bufsize,wbuf) {
 			ptrdiff_t j;
@@ -297,7 +301,7 @@ vweights=weights;
                 else confirmed[vloc]=1;
 	}
 
-	aml_register_handler(edgepreddisthndl,1);
+	aml_register_handler(edgepreddisthndl, sizeof(edgedist), 1);
 	nedges_traversed=0;
 
 	for (i = 0; i < nlocalverts; ++i)

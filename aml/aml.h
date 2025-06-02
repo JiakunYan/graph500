@@ -10,13 +10,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+  typedef void(*aml_handler_t)(int, void*);
 	//MPI-like init,finalize calls
 	extern int  aml_init(int *,char***);
 	extern void aml_finalize(void);
 	//barrier which ensures that all AM sent before the barrier are completed everywhere after the barrier
 	extern void aml_barrier( void );
 	//register active message function(collective call)
-	extern void aml_register_handler(void(*f)(int,void*,int),int n);
+	extern void aml_register_handler(aml_handler_t f, int size, int n);
 	//send AM to another(myself is ok) node
 	//execution of AM might be delayed till next aml_barrier() call
 	extern void aml_send(void *srcaddr, int type,int length, int node );

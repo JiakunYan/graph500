@@ -41,7 +41,7 @@ typedef struct  __attribute__((__packed__)) relaxmsg {
 } relaxmsg;
 
 // Active message handler for relaxation
-void relaxhndl(int from, void* dat, int sz) {
+void relaxhndl(int from, void* dat) {
 	relaxmsg* m = (relaxmsg*) dat;
 	int vloc = m->dest_vloc;
 	float w = m->w;
@@ -80,7 +80,7 @@ void run_sssp(int64_t root,int64_t* pred,float *dist) {
 	pred_glob=pred;
 	qc=0;q2c=0;
 
-	aml_register_handler(relaxhndl,1);
+	aml_register_handler(relaxhndl, sizeof(relaxmsg), 1);
 
 	if (VERTEX_OWNER(root) == my_pe()) {
 		q1[0]=VERTEX_LOCAL(root);

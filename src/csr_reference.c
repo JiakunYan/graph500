@@ -34,10 +34,10 @@ int isisolated(int64_t v) {
 	return 0; //locally no evidence, allreduce required
 }
 
-void halfedgehndl(int from,void* data,int sz)
+void halfedgehndl(int from,void* data)
 {  degrees[*(int*)data]++; }
 
-void fulledgehndl(int frompe,void* data,int sz) {
+void fulledgehndl(int frompe,void* data) {
 	int vloc = *(int*)data;
 	int64_t gtgt = *((int64_t*)(data+4));
 	SETCOLUMN(degrees[vloc]++,gtgt);
@@ -82,7 +82,7 @@ void convert_graph_to_oned_csr(const tuple_graph* const tg, oned_csr_graph* cons
 	nvert+=1;
 	degrees=xcalloc(nvert,sizeof(int));
 
-	aml_register_handler(halfedgehndl,1);
+	aml_register_handler(halfedgehndl, sizeof(int), 1);
 	int numiters=ITERATE_TUPLE_GRAPH_BLOCK_COUNT(tg);
 	// First pass : calculate degrees of each vertex
 	ITERATE_TUPLE_GRAPH_BEGIN(tg, buf, bufsize,wbuf) {
@@ -157,7 +157,11 @@ void convert_graph_to_oned_csr(const tuple_graph* const tg, oned_csr_graph* cons
 	//long allocatededges=colalloc;
 	g->column = column;
 
-	aml_register_handler(fulledgehndl,1);
+#ifdef SSSP
+	aml_register_handler(fulledgehndl, 16, 1);
+#else
+	aml_register_handler(fulledgehndl, 12, 1);
+#endif
 	//Next pass , actual data transfer: placing edges to its places in column and hcolumn
 	ITERATE_TUPLE_GRAPH_BEGIN(tg, buf, bufsize,wbuf) {
 		ptrdiff_t j;

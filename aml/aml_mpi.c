@@ -75,6 +75,7 @@ int pthread_setaffinity_np(pthread_t thread, size_t cpu_size,
 
 #include <mpi.h>
 #include <unistd.h>
+#include "aml.h"
 
 #define MAXGROUPS                                                              \
   65536 // number of nodes (core processes form a group on a same node)
@@ -109,8 +110,7 @@ volatile static int ack = 0;
 
 volatile static int inbarrier = 0;
 
-static void (*aml_handlers[256])(int, void *,
-                                 int); // pointers to user-provided AM handlers
+static aml_handler_t aml_handlers[256]; // pointers to user-provided AM handlers
 
 // internode comm (proc number X from each group)
 // intranode comm (all cores of one nodegroup)
@@ -144,7 +144,7 @@ static inline void aml_send_intra(void *srcaddr, int type, int length,
 void aml_finalize(void);
 void aml_barrier(void);
 
-SOATTR void aml_register_handler(void (*f)(int, void *, int), int n) {
+SOATTR void aml_register_handler(aml_handler_t f, int size, int n) {
   aml_barrier();
   aml_handlers[n] = f;
   aml_barrier();
@@ -166,7 +166,7 @@ static void process(int fromgroup, int length, char *message) {
     int hndl = h->hndl;
     int destlocal = LOCAL_FROM_PROC(h->routing);
     if (destlocal == mylocal)
-      aml_handlers[hndl](from, m + sizeof(struct hdr), hsz);
+      aml_handlers[hndl](from, m + sizeof(struct hdr));
     else
       aml_send_intra(m + sizeof(struct hdr), hndl, hsz, destlocal, from);
     i += hsz + sizeof(struct hdr);
@@ -187,7 +187,7 @@ static void process_intra(int fromlocal, int length, char *message) {
     int hsz = h->sz;
     int hndl = h->hndl;
     aml_handlers[hndl](PROC_FROM_GROUPLOCAL((int)(h->routing), fromlocal),
-                       m + sizeof(struct hdri), hsz);
+                       m + sizeof(struct hdri));
     i += sizeof(struct hdri) + hsz;
   }
 }
@@ -296,7 +296,7 @@ static inline void aml_send_intra(void *src, int type, int length, int local,
 
 SOATTR void aml_send(void *src, int type, int length, int node) {
   if (node == myproc)
-    return aml_handlers[type](myproc, src, length);
+    return aml_handlers[type](myproc, src);
 
   int group = GROUP_FROM_PROC(node);
   int local = LOCAL_FROM_PROC(node);
